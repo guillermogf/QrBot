@@ -1,0 +1,8 @@
+QrBot
+Author: Guillermo Gómez Fonfría
+Email: <guillermo.gf@openmailbox.org>
+
+QrBot creates QR codes using qrenconde linux command
+
+Thanks to qrenconde developers for the tool
+Thanks to Telegram for the bot API
