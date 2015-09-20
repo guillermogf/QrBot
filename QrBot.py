@@ -47,7 +47,8 @@ start_text = "Hi!\nThis bot creates a Qr code containing the text you want\n"
 
 help_text = "List of available commands:\n/help Shows this list of available \
 commands\n/qr <your text>Creates a Qr code using the input text\n/about Shows \
-info about this bot."
+info about this bot\n/feedback <message> Send your feedback to the QrBot \
+developers"
 
 about_text = "Source code at: https://github.com/guillermogf/BechdelBot"
 
@@ -56,10 +57,14 @@ error_unknown = "Unknown command\n"
 
 def get_input_text(message):
     message = message.split(" ")
-    if "/qr@BechdelBot" in message:
-        message.remove("/qr@BechdelBot")
+    if "/qr@QrBot" in message:
+        message.remove("/qr@QrBot")
     elif "/qr" in message:
         message.remove("/qr")
+    elif "/feedback" in message:
+        message.remove("/feedback")
+    elif "/feedback@QrBot" in message:
+        message.remove("/feedback@QrBot")
 
     input_text = " ".join(message)
     return input_text
@@ -112,22 +117,22 @@ while True:
 
         # Group's status messages don't include "text" key
         try:
-            tmp = item["message"]["text"]
+            text = item["message"]["text"]
         except KeyError:
             continue
 
-        if "/start" == item["message"]["text"]:
+        if "/start" == text:
             message = requests.get(sendmessage_url + "?chat_id=" +
                                    str(item["message"]["chat"]["id"]) +
                                    "&text=" + start_text + help_text)
 
-        elif "/help" in item["message"]["text"]:
+        elif "/help" in text:
             message = requests.get(sendmessage_url + "?chat_id=" +
                                    str(item["message"]["chat"]["id"]) +
                                    "&text=" + help_text)
 
-        elif "/qr" in item["message"]["text"]:
-            message = get_input_text(item["message"]["text"])
+        elif "/qr" in text:
+            message = get_input_text(text)
             if message == "":
                 message = requests.get(sendmessage_url + "?chat_id=" +
                                        str(item["message"]["chat"]["id"]) +
@@ -140,8 +145,8 @@ while True:
             requests.post(sendimage_url, data=data, files=files)
             os.remove(path)
 
-        elif "/feedback" in item["message"]["text"]:
-            if get_argument(text) != "":
+        elif "/feedback" in text:
+            if get_input_text(text) != "":
                 feedback([time.ctime(item["message"]["date"]),
                           "id:" + str(item["message"]["chat"]["id"]),
                           item["message"]["from"]["first_name"], text])
@@ -152,7 +157,7 @@ while True:
                                    str(item["message"]["chat"]["id"]) +
                                    "&text=" + answer)
 
-        elif "/about" in item["message"]["text"]:
+        elif "/about" in text:
             message = requests.get(sendmessage_url + "?chat_id=" +
                                    str(item["message"]["chat"]["id"]) +
                                    "&text=" + about_text)
