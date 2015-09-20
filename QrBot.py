@@ -23,17 +23,17 @@ import os
 import json
 import requests
 import subprocess
+import time
 
 
 # Load Token
 try:
-    token_file = open("token")
+    with open("token") as token_file:
+        token = token_file.read().rstrip("\n")
 except:
     print("Token file missing")
     sys.exit(1)
 
-token = token_file.read().rstrip("\n")
-token_file.close()
 
 # Telegram API urls
 api_url = "https://api.telegram.org/bot"
@@ -46,7 +46,10 @@ sendimage_url = token_url + "/sendPhoto"
 start_text = "Hi!\nThis bot creates a Qr code containing the text you want\n"
 
 help_text = "List of available commands:\n/help Shows this list of available \
-commands\n/qr <your text>Creates a Qr code using the input text."
+commands\n/qr <your text>Creates a Qr code using the input text\n/about Shows \
+info about this bot."
+
+about_text = "Source code at: https://github.com/guillermogf/BechdelBot"
 
 error_unknown = "Unknown command\n"
 
@@ -63,24 +66,31 @@ def get_input_text(message):
 
 
 def generate_image(message):
-    exit_code = subprocess.call(["qrencode", "-s", "5", message, "-o", "/tmp/qrcode.png"])
+    exit_code = subprocess.call(["qrencode", "-s", "5", message,
+                                 "-o", "/tmp/qrcode.png"])
     if exit_code != 0:
         print("Qr encode failed. Exit code {0}".format(exit_code))
+        print(message)
         sys.exit(1)
     return "/tmp/qrcode.png"
+
+
+def feedback(message):
+    with open("feedback", "a") as feedback_file:
+        feedback = " ".join(message) + "\n"
+        feedback_file.write(feedback.encode("utf-8"))
 
 
 while True:
     # Load last update
     try:
-        last_update_file = open("lastupdate")
-        last_update = last_update_file.read().rstrip("\n")
-        last_update_file.close()
+        with open("lastupdate") as last_update_file:
+            last_update = last_update_file.read().rstrip("\n")
     except:
         last_update = "0"  # If lastupdate file not present, read all updates
 
-    getupdates_offset_url = getupdates_url + "?offset=" + str(int(last_update)
-                                                              + 1)
+    getupdates_offset_url = getupdates_url + "?offset=" + \
+        str(int(last_update) + 1)
 
     get_updates = requests.get(getupdates_offset_url)
     if get_updates.status_code != 200:
@@ -93,9 +103,12 @@ while True:
         if int(last_update) >= item["update_id"]:
             continue
         # Store last update
-        last_update_file = open("lastupdate", "w")
-        last_update_file.write(str(item["update_id"]))
-        last_update_file.close()
+        with open("lastupdate", "w") as last_update_file:
+            last_update_file.write(str(item["update_id"]))
+
+        # Store time to log
+        with open("log", "a") as log:
+            log.write(str(time.time()) + "\n")
 
         # Group's status messages don't include "text" key
         try:
@@ -107,10 +120,12 @@ while True:
             message = requests.get(sendmessage_url + "?chat_id=" +
                                    str(item["message"]["chat"]["id"]) +
                                    "&text=" + start_text + help_text)
+
         elif "/help" in item["message"]["text"]:
             message = requests.get(sendmessage_url + "?chat_id=" +
                                    str(item["message"]["chat"]["id"]) +
                                    "&text=" + help_text)
+
         elif "/qr" in item["message"]["text"]:
             message = get_input_text(item["message"]["text"])
             if message == "":
@@ -124,10 +139,29 @@ while True:
             files = {"photo": (path, open(path, "rb"))}
             requests.post(sendimage_url, data=data, files=files)
             os.remove(path)
+
+        elif "/feedback" in item["message"]["text"]:
+            if get_argument(text) != "":
+                feedback([time.ctime(item["message"]["date"]),
+                          "id:" + str(item["message"]["chat"]["id"]),
+                          item["message"]["from"]["first_name"], text])
+                answer = "Thanks for your feedback!"
+            else:
+                answer = "Write your message after /feedback"
+            message = requests.get(sendmessage_url + "?chat_id=" +
+                                   str(item["message"]["chat"]["id"]) +
+                                   "&text=" + answer)
+
+        elif "/about" in item["message"]["text"]:
+            message = requests.get(sendmessage_url + "?chat_id=" +
+                                   str(item["message"]["chat"]["id"]) +
+                                   "&text=" + about_text)
+
         elif item["message"]["chat"]["id"] < 0:
             # If it is none of the above and it's a group, let's guess it was
             # for another bot rather than sending the unknown command message
             continue
+
         else:
             message = requests.get(sendmessage_url + "?chat_id=" +
                                    str(item["message"]["chat"]["id"]) +
