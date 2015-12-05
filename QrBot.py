@@ -50,7 +50,7 @@ commands\n/qr <your text>Creates a Qr code using the input text\n/about Shows \
 info about this bot\n/feedback <message> Send your feedback to the QrBot \
 developers"
 
-about_text = "Source code at: https://github.com/guillermogf/BechdelBot"
+about_text = "Source code at: https://github.com/guillermogf/QrBot"
 
 error_unknown = "Unknown command\n"
 
