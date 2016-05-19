@@ -136,9 +136,13 @@ while True:
             if message == "":
                 message = requests.get(sendmessage_url + "?chat_id=" +
                                        str(item["message"]["chat"]["id"]) +
-                                       "&text=Write what you want to encode \
-                                       after /qr")
-                continue
+                                       "&text=Write what you want to encode" +
+                                       " after /qr")
+            elif len(message) > 2940:
+                message = requests.get(sendmessage_url + "?chat_id=" +
+                                       str(item["message"]["chat"]["id"]) +
+                                       "&text=Your text should be less than" +
+                                       " 2940 characters")
             path = generate_image(message)
             data = {"chat_id": str(item["message"]["chat"]["id"])}
             files = {"photo": (path, open(path, "rb"))}
